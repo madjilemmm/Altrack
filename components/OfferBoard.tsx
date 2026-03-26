@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { mockOffers } from "@/lib/mockData";
-import { Offer, OfferType, TrackedApplication, ApplicationStatus } from "@/lib/types";
+import { OfferType, TrackedApplication, ApplicationStatus } from "@/lib/types";
 
 const statusLabel: Record<ApplicationStatus, string> = {
   a_postuler: "À postuler",
@@ -11,6 +11,7 @@ const statusLabel: Record<ApplicationStatus, string> = {
   refuse: "Refusé"
 };
 
+const offerPalette = ["var(--orange)", "var(--pink)", "var(--yellow)", "var(--green)"];
 const STORAGE_KEY = "altrack-applications";
 
 function useLocalApplications() {
@@ -44,18 +45,12 @@ export function OfferBoard() {
   const filteredOffers = useMemo(() => {
     return mockOffers.filter((offer) => {
       const typeMatch = typeFilter === "all" || offer.type === typeFilter;
-      const searchMatch = `${offer.title} ${offer.company} ${offer.sport}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
-
+      const searchMatch = `${offer.title} ${offer.company} ${offer.sport}`.toLowerCase().includes(search.toLowerCase());
       return typeMatch && searchMatch;
     });
   }, [search, typeFilter]);
 
-  const offersById = useMemo(
-    () => Object.fromEntries(mockOffers.map((offer) => [offer.id, offer])),
-    []
-  );
+  const offersById = useMemo(() => Object.fromEntries(mockOffers.map((offer) => [offer.id, offer])), []);
 
   const upsertApplication = () => {
     if (!selectedOfferId) return;
@@ -82,55 +77,71 @@ export function OfferBoard() {
     setNote("");
   };
 
-  const removeApplication = (id: string) => {
-    save(items.filter((it) => it.id !== id));
-  };
-
   return (
     <main>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h1>Altrack ⚽</h1>
-        <p style={{ color: "var(--muted)", marginTop: -6 }}>
-          Flux d'offres d'alternance en communication & événementiel sportif + suivi de candidatures.
-        </p>
-      </div>
-
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2>Filtrer les offres</h2>
-        <div className="form-grid">
+      <section className="hero">
+        <div className="hero-top">
           <div>
-            <label>Recherche</label>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="club, métier, sport..."
-            />
+            <h1>Altrack Sport Alternance</h1>
+            <p>Trouve les meilleures offres en communication / événementiel sport et suis tes candidatures.</p>
           </div>
-          <div>
-            <label>Domaine</label>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as "all" | OfferType)}>
-              <option value="all">Tous</option>
-              <option value="communication">Communication</option>
-              <option value="event">Événementiel</option>
-            </select>
-          </div>
+          <button className="cta">Nouvelle candidature</button>
         </div>
-      </div>
-
-      <section style={{ marginBottom: 20 }}>
-        <h2>Flux d'offres ({filteredOffers.length})</h2>
-        <div className="grid">
-          {filteredOffers.map((offer) => (
-            <OfferCard key={offer.id} offer={offer} tracked={items.some((it) => it.offerId === offer.id)} />
-          ))}
+        <div className="chips">
+          <span className="chip orange">Communication</span>
+          <span className="chip pink">Événementiel</span>
+          <span className="chip yellow">Football • Rugby • Basket</span>
+          <span className="chip green">Suivi intelligent</span>
         </div>
       </section>
 
-      <section className="card" style={{ marginBottom: 20 }}>
-        <h2>Suivi des candidatures</h2>
-        <div className="form-grid">
-          <div>
-            <label>Offre</label>
+      <section className="layout">
+        <div className="panel feed">
+          <div className="panel filters">
+            <h2 className="title">Flux d'offres</h2>
+            <div className="form-grid">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher club, sport, métier..."
+              />
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as "all" | OfferType)}>
+                <option value="all">Tous les domaines</option>
+                <option value="communication">Communication</option>
+                <option value="event">Événementiel</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="offers-grid">
+            {filteredOffers.map((offer, index) => (
+              <article
+                key={offer.id}
+                className="offer-card"
+                style={{ background: offerPalette[index % offerPalette.length], color: offer.type === "event" ? "#111" : "#fff" }}
+              >
+                <h3>{offer.title}</h3>
+                <div className="offer-meta">
+                  <span>{offer.company} • {offer.location}</span>
+                  <span className="badge">{offer.sport}</span>
+                </div>
+                <div className="offer-actions">
+                  <a href={offer.url} target="_blank" rel="noreferrer">
+                    <button className="btn dark">Voir l'offre</button>
+                  </a>
+                  <span className="badge">Publié le {offer.postedAt}</span>
+                  <span className="badge">{offer.source}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <aside className="panel tracker">
+          <h2>Suivi candidatures</h2>
+          <p style={{ color: "var(--muted)", marginTop: 6 }}>Ajoute une offre, définis un statut et garde des notes.</p>
+
+          <div className="form-grid" style={{ marginTop: 8 }}>
             <select value={selectedOfferId} onChange={(e) => setSelectedOfferId(e.target.value)}>
               {mockOffers.map((offer) => (
                 <option key={offer.id} value={offer.id}>
@@ -138,9 +149,7 @@ export function OfferBoard() {
                 </option>
               ))}
             </select>
-          </div>
-          <div>
-            <label>Statut</label>
+
             <select value={status} onChange={(e) => setStatus(e.target.value as ApplicationStatus)}>
               {Object.entries(statusLabel).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -149,78 +158,41 @@ export function OfferBoard() {
               ))}
             </select>
           </div>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <label>Note personnelle</label>
+
           <textarea
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="ex: relance prévue mardi"
+            placeholder="Note (date d'entretien, relance, contact RH...)"
+            style={{ marginTop: 8 }}
           />
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <button className="btn-primary" onClick={upsertApplication}>
-            Enregistrer / Mettre à jour
+
+          <button className="btn dark" onClick={upsertApplication} style={{ marginTop: 10 }}>
+            Enregistrer
           </button>
-        </div>
 
-        <div style={{ marginTop: 18 }}>
-          {items.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>Aucune candidature suivie pour le moment.</p>
-          ) : (
-            <div className="grid">
-              {items.map((application) => {
+          <div className="app-list">
+            {items.length === 0 ? (
+              <p style={{ color: "var(--muted)" }}>Aucune candidature suivie pour le moment.</p>
+            ) : (
+              items.map((application) => {
                 const offer = offersById[application.offerId];
-
                 if (!offer) return null;
 
                 return (
-                  <div className="card" key={application.id}>
-                    <h3 style={{ marginBottom: 6 }}>{offer.title}</h3>
-                    <p style={{ margin: 0, color: "var(--muted)" }}>{offer.company}</p>
-                    <p style={{ marginTop: 8 }}>
-                      <span className={application.status === "refuse" ? "badge" : "badge badge-pending"}>
-                        {statusLabel[application.status]}
-                      </span>
-                    </p>
-                    <p style={{ fontSize: 14 }}>{application.note || "Aucune note"}</p>
-                    <small>Dernière mise à jour : {application.appliedAt}</small>
-                    <div style={{ marginTop: 10 }}>
-                      <button className="btn-outline" onClick={() => removeApplication(application.id)}>
-                        Supprimer
-                      </button>
-                    </div>
+                  <div className="app-item" key={application.id}>
+                    <strong>{offer.company}</strong>
+                    <p style={{ margin: "6px 0" }}>{offer.title}</p>
+                    <span className={`status s-${application.status}`}>{statusLabel[application.status]}</span>
+                    {application.note ? <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>{application.note}</p> : null}
+                    <p style={{ margin: "6px 0 0", fontSize: 13 }}>Mise à jour : {application.appliedAt}</p>
                   </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
+              })
+            )}
+          </div>
+        </aside>
       </section>
     </main>
-  );
-}
-
-function OfferCard({ offer, tracked }: { offer: Offer; tracked: boolean }) {
-  return (
-    <article className="card">
-      <h3 style={{ marginBottom: 8 }}>{offer.title}</h3>
-      <p style={{ margin: "0 0 8px", color: "var(--muted)" }}>
-        {offer.company} • {offer.location}
-      </p>
-      <p style={{ margin: "0 0 8px" }}>
-        <span className="badge badge-ok">{offer.sport}</span>
-      </p>
-      <p style={{ margin: "0 0 8px", fontSize: 14 }}>
-        Source: <strong>{offer.source}</strong> — Publié le {offer.postedAt}
-      </p>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <a href={offer.url} target="_blank" rel="noreferrer">
-          <button className="btn-primary">Voir l'offre</button>
-        </a>
-        {tracked ? <span className="badge badge-pending">Suivi actif</span> : null}
-      </div>
-    </article>
   );
 }
