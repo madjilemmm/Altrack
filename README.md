@@ -26,3 +26,11 @@ Puis ouvrir `http://localhost:3000`.
 - Mettre en place une base de données (Supabase / PostgreSQL) pour synchroniser le suivi entre appareils.
 - Ajouter l'authentification (NextAuth, Clerk ou Auth0).
 - Déployer sur Vercel et connecter au dépôt GitHub.
+
+## Vérification conflits Git
+
+Avant de push une PR, tu peux vérifier qu'aucun marqueur de merge n'est resté :
+
+```bash
+npm run check:conflicts
+```
