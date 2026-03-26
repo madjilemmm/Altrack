@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:conflicts": "bash -lc \"if rg -n '^(<<<<<<<|=======|>>>>>>>)' app components lib; then echo 'Conflict markers found'; exit 1; else echo 'No conflict markers'; fi\""
   },
   "dependencies": {
     "next": "14.2.5",
