@@ -100,7 +100,7 @@ export function OfferBoard() {
           </div>
         </div>
 
-        <div className="section-label">Menu</div>
+        <div className="section-label">Navigation</div>
         <nav className="nav">
           <div className="nav-item active">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -114,7 +114,7 @@ export function OfferBoard() {
           </div>
         </nav>
 
-        <div className="section-label" style={{ marginTop: 20 }}>Statistiques</div>
+        <div className="section-label stats-section">Statistiques</div>
         <div className="stats-grid">
           <div className="stat-box">
             <div className="stat-val">{mockOffers.length}</div>
@@ -128,7 +128,7 @@ export function OfferBoard() {
             <div className="stat-val">{interviewCount}</div>
             <div className="stat-lbl">Entretiens</div>
           </div>
-          <div className="stat-box">
+          <div className="stat-box brand-stat">
             <div className="stat-val">{postedCount}</div>
             <div className="stat-lbl">Postulé</div>
           </div>
@@ -144,7 +144,6 @@ export function OfferBoard() {
 
       {/* ── Main ────────────────────────────────── */}
       <div className="main">
-        {/* Topbar */}
         <header className="topbar">
           <div className="topbar-left">
             <h1 className="page-title">Flux d'offres</h1>
@@ -164,14 +163,13 @@ export function OfferBoard() {
           </div>
         </header>
 
-        {/* Content */}
         <div className="content">
           {/* Filter bar */}
           <div className="filter-bar">
             {(["all", "communication", "event"] as const).map(f => (
               <button
                 key={f}
-                className={`filter-pill ${typeFilter === f ? "active" : ""}`}
+                className={`filter-pill${typeFilter === f ? " active" : ""}`}
                 onClick={() => setTypeFilter(f)}
               >
                 {f === "all" ? "Toutes les offres" : f === "communication" ? "Communication" : "Événementiel"}
@@ -257,13 +255,16 @@ export function OfferBoard() {
 
               <div className="app-list">
                 {items.length === 0 ? (
-                  <div className="app-empty">Aucune candidature suivie pour le moment.</div>
+                  <div className="app-empty">
+                    Aucune candidature suivie.<br />
+                    Sélectionne une offre et clique sur Enregistrer.
+                  </div>
                 ) : (
                   items.map(app => {
                     const offer = offersById[app.offerId];
                     if (!offer) return null;
                     return (
-                      <div key={app.id} className="app-item">
+                      <div key={app.id} className="app-item" data-status={app.status}>
                         <div className="app-item-row">
                           <div>
                             <div className="app-item-company">{offer.company}</div>
@@ -305,7 +306,7 @@ function OfferCard({
   onSelect: () => void;
 }) {
   return (
-    <div className={`offer-card ${tracked ? "tracked" : ""}`}>
+    <div className={`offer-card${tracked ? " tracked" : ""}`}>
       <div className={`offer-stripe ${offer.type === "communication" ? "stripe-comm" : "stripe-event"}`} />
       <div className="offer-body">
         <div className="offer-head">
@@ -322,9 +323,8 @@ function OfferCard({
                 Suivi
               </span>
             )}
-            <a href={offer.url} target="_blank" rel="noreferrer" className="btn-ext">
-              Voir
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <a href={offer.url} target="_blank" rel="noreferrer" className="btn-ext" aria-label="Voir l'offre">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15,3 21,3 21,9" />
                 <line x1="10" y1="14" x2="21" y2="3" />
