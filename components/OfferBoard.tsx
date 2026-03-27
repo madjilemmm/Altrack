@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { mockOffers } from "@/lib/mockData";
+import { useEffect, useMemo, useState } from "react";
 import { Offer, OfferType, TrackedApplication, ApplicationStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
@@ -39,42 +38,85 @@ function useLocalApplications() {
   return { items, save };
 }
 
+/* ── Fetch des offres réelles ──────────────────────────────── */
+function useOffers() {
+  const [offers, setOffers]   = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch("/api/offers");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Offer[] = await res.json();
+        if (!cancelled) setOffers(data);
+      } catch (e) {
+        if (!cancelled) setError("Impossible de charger les offres. Réessaie dans quelques instants.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { offers, loading, error };
+}
+
 export function OfferBoard() {
-  const [typeFilter, setTypeFilter] = useState<"all" | OfferType>("all");
-  const [search, setSearch] = useState("");
-  const [selectedOfferId, setSelectedOfferId] = useState(mockOffers[0]?.id ?? "");
-  const [status, setStatus] = useState<ApplicationStatus>("a_postuler");
-  const [note, setNote] = useState("");
-  const { items, save } = useLocalApplications();
+  const [typeFilter, setTypeFilter]       = useState<"all" | OfferType>("all");
+  const [search, setSearch]               = useState("");
+  const [selectedOfferId, setSelectedOfferId] = useState("");
+  const [status, setStatus]               = useState<ApplicationStatus>("a_postuler");
+  const [note, setNote]                   = useState("");
+  const { items, save }                   = useLocalApplications();
+  const { offers, loading, error }        = useOffers();
+
+  // Sélectionner la première offre dès que les données arrivent
+  useEffect(() => {
+    if (offers.length > 0 && !selectedOfferId) {
+      setSelectedOfferId(offers[0].id);
+    }
+  }, [offers, selectedOfferId]);
 
   const filteredOffers = useMemo(() =>
-    mockOffers.filter(o => {
+    offers.filter(o => {
       const typeOk = typeFilter === "all" || o.type === typeFilter;
-      const q = search.toLowerCase();
-      const textOk = [o.title, o.company, o.sport, o.location].join(" ").toLowerCase().includes(q);
+      const q      = search.toLowerCase();
+      const textOk = [o.title, o.company, o.sport, o.location]
+        .join(" ").toLowerCase().includes(q);
       return typeOk && textOk;
     }),
-    [search, typeFilter]
+    [offers, search, typeFilter]
   );
 
   const offersById = useMemo(
-    () => Object.fromEntries(mockOffers.map(o => [o.id, o])),
-    []
+    () => Object.fromEntries(offers.map(o => [o.id, o])),
+    [offers]
   );
 
   const trackedSet = useMemo(() => new Set(items.map(it => it.offerId)), [items]);
 
   const upsert = () => {
     if (!selectedOfferId) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today  = new Date().toISOString().slice(0, 10);
     const exists = items.find(it => it.offerId === selectedOfferId);
-    const next = exists
+    const next   = exists
       ? items.map(it =>
           it.offerId === selectedOfferId
             ? { ...it, status, note, appliedAt: today }
             : it
         )
-      : [{ id: crypto.randomUUID(), offerId: selectedOfferId, status, note, appliedAt: today }, ...items];
+      : [
+          { id: crypto.randomUUID(), offerId: selectedOfferId, status, note, appliedAt: today },
+          ...items,
+        ];
     save(next);
     setNote("");
   };
@@ -110,14 +152,14 @@ export function OfferBoard() {
               <rect x="3" y="14" width="7" height="7" rx="1" />
             </svg>
             Offres d'alternance
-            <span className="nav-badge">{mockOffers.length}</span>
+            {!loading && <span className="nav-badge">{offers.length}</span>}
           </div>
         </nav>
 
         <div className="section-label stats-section">Statistiques</div>
         <div className="stats-grid">
           <div className="stat-box">
-            <div className="stat-val">{mockOffers.length}</div>
+            <div className="stat-val">{loading ? "—" : offers.length}</div>
             <div className="stat-lbl">Offres</div>
           </div>
           <div className="stat-box">
@@ -137,7 +179,7 @@ export function OfferBoard() {
         <div className="sidebar-footer">
           <div className="footer-pulse">
             <span className="pulse-dot" />
-            Données locales · en direct
+            La Bonne Alternance · live
           </div>
         </div>
       </aside>
@@ -147,7 +189,9 @@ export function OfferBoard() {
         <header className="topbar">
           <div className="topbar-left">
             <h1 className="page-title">Flux d'offres</h1>
-            <span className="count-tag">{filteredOffers.length}</span>
+            {!loading && (
+              <span className="count-tag">{filteredOffers.length}</span>
+            )}
           </div>
           <div className="searchbar">
             <svg className="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -159,6 +203,7 @@ export function OfferBoard() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Poste, club, sport, ville..."
+              disabled={loading}
             />
           </div>
         </header>
@@ -171,8 +216,13 @@ export function OfferBoard() {
                 key={f}
                 className={`filter-pill${typeFilter === f ? " active" : ""}`}
                 onClick={() => setTypeFilter(f)}
+                disabled={loading}
               >
-                {f === "all" ? "Toutes les offres" : f === "communication" ? "Communication" : "Événementiel"}
+                {f === "all"
+                  ? "Toutes les offres"
+                  : f === "communication"
+                  ? "Communication"
+                  : "Événementiel"}
               </button>
             ))}
           </div>
@@ -181,11 +231,26 @@ export function OfferBoard() {
           <div className="board">
             {/* Offer list */}
             <div className="offer-list">
-              {filteredOffers.length === 0 ? (
+              {loading ? (
+                <SkeletonList />
+              ) : error ? (
                 <div className="empty">
                   <div className="empty-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                  </div>
+                  <div className="empty-title">Erreur de chargement</div>
+                  <div className="empty-sub">{error}</div>
+                </div>
+              ) : filteredOffers.length === 0 ? (
+                <div className="empty">
+                  <div className="empty-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
                     </svg>
                   </div>
                   <div className="empty-title">Aucune offre trouvée</div>
@@ -217,10 +282,19 @@ export function OfferBoard() {
                     className="form-select"
                     value={selectedOfferId}
                     onChange={e => setSelectedOfferId(e.target.value)}
+                    disabled={loading || offers.length === 0}
                   >
-                    {mockOffers.map(o => (
-                      <option key={o.id} value={o.id}>{o.title} — {o.company}</option>
-                    ))}
+                    {loading ? (
+                      <option>Chargement…</option>
+                    ) : offers.length === 0 ? (
+                      <option>Aucune offre disponible</option>
+                    ) : (
+                      offers.map(o => (
+                        <option key={o.id} value={o.id}>
+                          {o.title} — {o.company}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -248,7 +322,11 @@ export function OfferBoard() {
                   />
                 </div>
 
-                <button className="btn-save" onClick={upsert}>
+                <button
+                  className="btn-save"
+                  onClick={upsert}
+                  disabled={!selectedOfferId || loading}
+                >
                   Enregistrer
                 </button>
               </div>
@@ -296,6 +374,7 @@ export function OfferBoard() {
   );
 }
 
+/* ── Offer Card ─────────────────────────────────────────────── */
 function OfferCard({
   offer,
   tracked,
@@ -342,5 +421,27 @@ function OfferCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── Skeleton loading ───────────────────────────────────────── */
+function SkeletonList() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="offer-card skeleton-card" style={{ animationDelay: `${i * 60}ms` }}>
+          <div className="offer-stripe skeleton-stripe" />
+          <div className="offer-body">
+            <div className="skeleton-line" style={{ width: "65%", marginBottom: 8 }} />
+            <div className="skeleton-line" style={{ width: "40%", marginBottom: 14 }} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <div className="skeleton-pill" />
+              <div className="skeleton-pill" />
+              <div className="skeleton-pill" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
