@@ -669,6 +669,14 @@ select { appearance: none; }
   color: var(--text-dim);
 }
 
+/* Source badges — une couleur par plateforme */
+.tag-source[data-source="Indeed"]           { background: var(--blue-08);   border-color: var(--blue-15);   color: var(--blue); }
+.tag-source[data-source="France Travail"]   { background: rgba(99,226,183,0.08); border-color: rgba(99,226,183,0.18); color: #63e2b7; }
+.tag-source[data-source="APEC"]             { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.16); color: var(--yellow); }
+.tag-source[data-source="HelloWork"]        { background: var(--orange-08); border-color: var(--orange-15); color: var(--orange); }
+.tag-source[data-source="La Bonne Alternance"] { background: var(--purple-08); border-color: var(--purple-15); color: var(--purple); }
+.tag-source[data-source="LinkedIn"]         { background: rgba(10,102,194,0.12); border-color: rgba(10,102,194,0.25); color: #4a9eed; }
+
 .tag-date {
   color: var(--text-faint);
   font-size: 10.5px;

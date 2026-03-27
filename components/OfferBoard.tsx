@@ -413,7 +413,7 @@ function OfferCard({
         </div>
         <div className="offer-footer">
           <span className="tag tag-sport">{offer.sport}</span>
-          <span className="tag tag-source">{offer.source}</span>
+          <span className="tag tag-source" data-source={offer.source}>{offer.source}</span>
           <span className="tag tag-date">{offer.postedAt}</span>
           <button className="btn-track" onClick={onSelect}>
             {tracked ? "Modifier" : "+ Suivre"}
