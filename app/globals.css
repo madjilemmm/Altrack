@@ -1022,6 +1022,39 @@ select { appearance: none; }
   line-height: 1.5;
 }
 
+/* ── Skeleton ───────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+
+.skeleton-card {
+  pointer-events: none;
+  animation: fade-in-up 300ms ease both, skeleton-pulse 1.6s ease-in-out infinite !important;
+  transform: none !important;
+  border-color: var(--border) !important;
+}
+
+.skeleton-stripe {
+  background: var(--border-mid) !important;
+  box-shadow: none !important;
+}
+
+.skeleton-line {
+  height: 12px;
+  background: var(--elevated);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+}
+
+.skeleton-pill {
+  height: 20px;
+  width: 60px;
+  background: var(--elevated);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+}
+
 /* ── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
